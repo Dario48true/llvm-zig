@@ -3,6 +3,10 @@ const std = @import("std");
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const llvm_version = b.option([]const u8, "llvm_version", "which llvm version to use") orelse switch (target.result.os.tag) {
+        .linux => "LLVM-19",
+        else => "LLVM",
+    };
 
     // LLVM MODULE
     const llvm_module = b.addModule("llvm", .{
@@ -23,16 +27,16 @@ pub fn build(b: *std.Build) !void {
         llvm_module.link_libcpp = true;
 
     switch (target.result.os.tag) {
-        .linux => llvm_module.linkSystemLibrary("LLVM-19", .{}), // Ubuntu
+        .linux => llvm_module.linkSystemLibrary(llvm_version, .{}), // Ubuntu
         .macos => {
             llvm_module.addLibraryPath(.{
                 .cwd_relative = "/opt/homebrew/opt/llvm/lib",
             });
-            llvm_module.linkSystemLibrary("LLVM", .{
+            llvm_module.linkSystemLibrary(llvm_version, .{
                 .use_pkg_config = .no,
             });
         },
-        else => llvm_module.linkSystemLibrary("LLVM", .{
+        else => llvm_module.linkSystemLibrary(llvm_version, .{
             .use_pkg_config = .no,
         }),
     }
